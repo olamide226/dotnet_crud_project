@@ -1,6 +1,6 @@
-# Complaint API
+# Starter Dotnet CRUD Project Templates - (Complaint API usecase)
 
-This is a .NET 8 Web API project for managing complaints. It provides endpoints for creating, retrieving, updating, and deleting complaints, as well as uploading images associated with complaints.
+This is a simple .NET 8 Web API starter boilerplate adapted for managing complaints. It provides endpoints for creating, retrieving, updating, and deleting complaints, as well as uploading images associated with complaints. This can be adapted to any domain that requires a similar CRUD functionality.
 
 ## Features
 
