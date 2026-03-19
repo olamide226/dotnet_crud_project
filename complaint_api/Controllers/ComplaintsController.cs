@@ -4,8 +4,11 @@ using complaint_api.Data;
 using complaint_api.Models;
 using complaint_api.Services;
 using complaint_api.Dtos;
+using complaint_api.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using System.Web;
+using DotnetCrud.Core.Models;
+using DotnetCrud.Core.Interfaces;
 
 namespace complaint_api.Controllers
 {
@@ -14,13 +17,13 @@ namespace complaint_api.Controllers
     [Authorize]
     public class ComplaintsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IComplaintRepository _repository;
         private readonly IAzureBlobService _blobService;
         private readonly ILogger<ComplaintsController> _logger;
 
-        public ComplaintsController(AppDbContext context, IAzureBlobService blobService, ILogger<ComplaintsController> logger)
+        public ComplaintsController(IComplaintRepository repository, IAzureBlobService blobService, ILogger<ComplaintsController> logger)
         {
-            _context = context;
+            _repository = repository;
             _blobService = blobService;
             _logger = logger;
         }
@@ -29,18 +32,14 @@ namespace complaint_api.Controllers
         [HttpGet]
         public async Task<ActionResult<PaginatedResponse<ComplaintResponseDto>>> GetComplaints([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var totalComplaints = await _context.Complaints.CountAsync();
-            var complaints = await _context.Complaints
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
+            var (complaints, totalCount) = await _repository.GetPaginatedAsync(page, pageSize);
+            
             var complaintDtos = complaints.Select(MapToDTO).ToList();
 
             var paginatedResponse = new PaginatedResponse<ComplaintResponseDto>
             {
                 Items = complaintDtos,
-                TotalCount = totalComplaints,
+                TotalCount = totalCount,
                 PageNumber = page,
                 PageSize = pageSize
             };
@@ -52,7 +51,7 @@ namespace complaint_api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ComplaintResponseDto>> GetComplaint(Guid id)
         {
-            var complaint = await _context.Complaints.FindAsync(id);
+            var complaint = await _repository.GetByIdAsync(id);
 
             if (complaint == null)
             {
@@ -68,14 +67,12 @@ namespace complaint_api.Controllers
         {
             var complaint = new Complaint
             {
-                Id = Guid.NewGuid(),
                 Description = createComplaintDto.Description,
-                Name = createComplaintDto.Name,
-                CreatedTime = DateTime.UtcNow
+                Name = createComplaintDto.Name
             };
 
-            await _context.Complaints.AddAsync(complaint);
-            await _context.SaveChangesAsync();
+            await _repository.AddAsync(complaint);
+            await _repository.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetComplaint), new { id = complaint.Id }, MapToDTO(complaint));
         }
@@ -84,7 +81,7 @@ namespace complaint_api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutComplaint(Guid id, UpdateComplaintDto updateComplaintDto)
         {
-            var complaint = await _context.Complaints.FindAsync(id);
+            var complaint = await _repository.GetByIdAsync(id);
 
             if (complaint == null)
             {
@@ -93,14 +90,16 @@ namespace complaint_api.Controllers
 
             complaint.Description = updateComplaintDto.Description;
             complaint.Name = updateComplaintDto.Name;
+            complaint.UpdatedAt = DateTime.UtcNow;
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _repository.UpdateAsync(complaint);
+                await _repository.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ComplaintExists(id))
+                if (!await _repository.ExistsAsync(id))
                 {
                     return NotFound();
                 }
@@ -117,7 +116,7 @@ namespace complaint_api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteComplaint(Guid id)
         {
-            var complaint = await _context.Complaints.FindAsync(id);
+            var complaint = await _repository.GetByIdAsync(id);
             if (complaint == null)
             {
                 return NotFound();
@@ -127,8 +126,9 @@ namespace complaint_api.Controllers
             {
                 await _blobService.DeleteFileAsync(imageUrl);
             }
-            _context.Complaints.Remove(complaint);
-            await _context.SaveChangesAsync();
+            
+            await _repository.DeleteAsync(id);
+            await _repository.SaveChangesAsync();
 
             return NoContent();
         }
@@ -137,7 +137,7 @@ namespace complaint_api.Controllers
         [HttpPost("{id}/upload")]
         public async Task<ActionResult<List<string>>> UploadImages(Guid id, List<IFormFile> files)
         {
-            var complaint = await _context.Complaints.FindAsync(id);
+            var complaint = await _repository.GetByIdAsync(id);
             if (complaint == null)
             {
                 return NotFound();
@@ -147,7 +147,10 @@ namespace complaint_api.Controllers
             {
                 var uploadedUrls = await _blobService.UploadFilesAsync(id, files);
                 complaint.ImageUrls = uploadedUrls.ToArray();
-                await _context.SaveChangesAsync();
+                complaint.UpdatedAt = DateTime.UtcNow;
+                
+                await _repository.UpdateAsync(complaint);
+                await _repository.SaveChangesAsync();
 
                 return Ok(uploadedUrls);
             }
@@ -164,7 +167,7 @@ namespace complaint_api.Controllers
         {
             // url decode the filename
             fileName = HttpUtility.UrlDecode(fileName);
-            var complaint = await _context.Complaints.FindAsync(id);
+            var complaint = await _repository.GetByIdAsync(id);
             if (complaint == null)
             {
                 return NotFound();
@@ -180,10 +183,7 @@ namespace complaint_api.Controllers
             return File(fileStream, contentType);
         }
 
-        private bool ComplaintExists(Guid id)
-        {
-            return _context.Complaints.Any(e => e.Id == id);
-        }
+
 
         private static ComplaintResponseDto MapToDTO(Complaint complaint)
         {
@@ -192,7 +192,7 @@ namespace complaint_api.Controllers
                 Id = complaint.Id,
                 Description = complaint.Description,
                 Name = complaint.Name,
-                CreatedTime = complaint.CreatedTime,
+                CreatedTime = complaint.CreatedAt,
                 ImageUrls = complaint.ImageUrls
             };
         }

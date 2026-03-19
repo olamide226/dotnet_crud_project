@@ -124,6 +124,13 @@ directories=(
     "tests/$NAMESPACE.IntegrationTests"
     "docs"
     ".github/workflows"
+    
+    # Base directories for starter kit files
+    "src/DotnetCrud.Core/Models"
+    "src/DotnetCrud.Core/Interfaces"
+    "src/DotnetCrud.Core/DTOs"
+    "src/DotnetCrud.Api/Controllers/Base"
+    "src/DotnetCrud.Infrastructure/Repositories"
 )
 
 for dir in "${directories[@]}"; do
@@ -131,6 +138,23 @@ for dir in "${directories[@]}"; do
 done
 
 echo -e "${GREEN}✅ Directory structure created${NC}"
+
+# Copy base starter kit files if they don't exist
+if [ -d "$(dirname "$0")/../src/DotnetCrud.Core" ]; then
+    echo -e "${YELLOW}📝 Copying starter kit base files...${NC}"
+    
+    # Copy base files from the starter kit
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Core/Models/BaseEntity.cs" "src/DotnetCrud.Core/Models/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Core/Interfaces/IRepository.cs" "src/DotnetCrud.Core/Interfaces/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Core/DTOs/PaginatedResponse.cs" "src/DotnetCrud.Core/DTOs/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Core/DTOs/BaseDtos.cs" "src/DotnetCrud.Core/DTOs/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Api/Controllers/Base/BaseApiController.cs" "src/DotnetCrud.Api/Controllers/Base/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Infrastructure/Repositories/GenericRepository.cs" "src/DotnetCrud.Infrastructure/Repositories/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Api/Program.cs" "src/DotnetCrud.Api/" 2>/dev/null || true
+    cp -n "$(dirname "$0")/../src/DotnetCrud.Infrastructure/Data/ApplicationDbContext.cs" "src/DotnetCrud.Infrastructure/Data/" 2>/dev/null || true
+    
+    echo -e "${GREEN}✅ Starter kit base files copied${NC}"
+fi
 
 # Generate Entity Model
 echo -e "${YELLOW}📝 Generating entity model...${NC}"

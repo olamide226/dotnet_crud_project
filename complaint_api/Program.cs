@@ -6,6 +6,7 @@ using System.Text;
 using Serilog;
 using complaint_api.Data;
 using complaint_api.Services;
+using complaint_api.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +51,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Configure Azure Blob Storage
 builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+
+// Configure Repository
+builder.Services.AddScoped<IComplaintRepository, ComplaintRepository>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
