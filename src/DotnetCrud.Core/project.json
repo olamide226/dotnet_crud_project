@@ -1,0 +1,19 @@
+{
+  "name": "DotnetCrud.Core",
+  "version": "1.0.0",
+  "description": "Core domain models and interfaces for .NET CRUD Starter Kit",
+  "authors": ["Your Name"],
+  "packOptions": {
+    "projectUrl": "https://github.com/yourusername/dotnet-crud-starter",
+    "licenseUrl": "https://opensource.org/licenses/MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/yourusername/dotnet-crud-starter"
+    },
+    "tags": ["dotnet", "crud", "starter", "api", "clean-architecture"]
+  },
+  "dependencies": {},
+  "frameworks": {
+    "net8.0": {}
+  }
+}

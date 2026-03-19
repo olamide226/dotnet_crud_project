@@ -1,0 +1,91 @@
+name: Publish Starter Kit
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Create Release Package
+      run: |
+        # Create a clean release directory
+        mkdir -p release/dotnet-crud-starter
+        
+        # Copy essential files
+        cp -r scripts release/dotnet-crud-starter/
+        cp -r src release/dotnet-crud-starter/
+        cp -r docs release/dotnet-crud-starter/
+        cp -r examples release/dotnet-crud-starter/
+        cp README_STARTER_KIT.md release/dotnet-crud-starter/README.md
+        cp LICENSE.md release/dotnet-crud-starter/
+        cp .gitignore release/dotnet-crud-starter/
+        
+        # Create starter kit info file
+        echo "# .NET CRUD Starter Kit" > release/dotnet-crud-starter/VERSION.txt
+        echo "Version: ${GITHUB_REF#refs/tags/}" >> release/dotnet-crud-starter/VERSION.txt
+        echo "Released: $(date)" >> release/dotnet-crud-starter/VERSION.txt
+        
+        # Create archive
+        cd release
+        tar -czf dotnet-crud-starter.tar.gz dotnet-crud-starter
+        zip -r dotnet-crud-starter.zip dotnet-crud-starter
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          release/dotnet-crud-starter.tar.gz
+          release/dotnet-crud-starter.zip
+        body: |
+          # .NET CRUD Starter Kit Release
+          
+          ## What's New
+          - Base infrastructure for clean architecture
+          - Setup scripts for Windows and Unix
+          - Example e-commerce API
+          - Comprehensive documentation
+          
+          ## Installation
+          
+          ### From Archive
+          ```bash
+          # Download and extract
+          tar -xzf dotnet-crud-starter.tar.gz
+          cd dotnet-crud-starter
+          
+          # Create your API
+          ./scripts/setup.sh -e Product -p Products -n MyApi
+          ```
+          
+          ### From Source
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd dotnet-crud-starter
+          ./scripts/setup.sh -e Product -p Products -n MyApi
+          ```
+          
+          See README for detailed instructions.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Publish NuGet Package (Future)
+      if: false  # Enable when ready for NuGet
+      run: |
+        # Pack the core library
+        dotnet pack src/DotnetCrud.Core/DotnetCrud.Core.csproj -c Release -o ./nupkg
+        dotnet pack src/DotnetCrud.Infrastructure/DotnetCrud.Infrastructure.csproj -c Release -o ./nupkg
+        
+        # Push to NuGet
+        # dotnet nuget push ./nupkg/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
