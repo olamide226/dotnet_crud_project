@@ -158,7 +158,7 @@ namespace complaint_api.Controllers
             }
         }
 
-        // Get: api/Complaints/5/upload
+        // Get: api/Complaints/5/upload/my-file-name.jpg
         [HttpGet("{id}/upload/{fileName}")]
         public async Task<ActionResult<List<string>>> GetImages(Guid id, string fileName)
         {

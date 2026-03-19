@@ -1,0 +1,39 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Run Unit Tests
+      run: dotnet test complaint_api.Tests/complaint_api.Tests.csproj --no-build --verbosity normal
+
+    - name: Run Integration Tests
+      run: dotnet test complaint_api.IntegrationTests/complaint_api.IntegrationTests.csproj --no-build --verbosity normal
+
+  # Placeholder for future deployment job
+  # deploy:
+  #   needs: build-and-test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Deploy to production
+  #     run: echo "Deploying to production..."
